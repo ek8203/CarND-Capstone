@@ -77,7 +77,7 @@ class Controller(object):
         # get throttle
         throttle = self.throttle_controller.step(error, sample_time)
 
-        # set brake to 400 Nm to hold stopped vehicle
+        # set brake to 400 N*m to hold stopped vehicle
         brake = 0.
         if linear_velocity == 0. and current_velocity < 0.1:
             throttle = 0.
@@ -86,6 +86,7 @@ class Controller(object):
         elif throttle < 0.1 and error < 0:  
             throttle = 0.
             decelerate = max(error, self.decel_limit)
+            # torque in N*m
             brake = abs(decelerate) * self.vehicle_mass * self.wheel_radius
 
         return throttle, brake, steer
