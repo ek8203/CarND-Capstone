@@ -45,7 +45,7 @@ class WaypointUpdater(object):
         self.base_waypoints = None
         self.waypoints_2d = None
         self.waypoint_tree = None
-
+        self.stopline_wp_idx = -1
 
         #rospy.spin()
         # To control the publishing frequency
@@ -110,21 +110,20 @@ class WaypointUpdater(object):
 
 
     def publish_waypoints(self):
-        final_lane = get_final_lane()
-        self.final_waypoints_pub.publish(final_lane)
+        lane = self.get_lane()
+        self.final_waypoints_pub.publish(lane)
         #pass
 
-    def get_final_lane(self):
+    def get_lane(self):
         # create new lane
-        lane = Lane()
-        
+        lane = Lane()        
         # the header is the same
-        lane.header = self.base_lane.header
+        lane.header = self.base_waypoints.header
 
         # slice waypoints from closest index to the end
         closest_idx = self.get_closest_waypoint_idx()
         farthest_idx = closest_idx + LOOKAHEAD_WPS
-        base_waypoints = self.base_lane.waypoints[closest_idx:farthest_idx]
+        base_waypoints = self.base_waypoints.waypoints[closest_idx:farthest_idx]
 
         if (self.stopline_wp_idx == -1) or (self.stopline_wp_idx >= farthest_idx):
             # no TL data - publish base waypoints
