@@ -113,8 +113,8 @@ class DBWNode(object):
         self.linear_velocity = msg.twist.linear.x
         self.angular_velocity = msg.twist.angular.z
         
-        if self.dbw_enabled:
-            rospy.loginfo('DBW: cur_vel={} lin_vel={}'.format(self.current_linear_velocity, self.linear_velocity))
+        #f self.dbw_enabled:
+        #    rospy.loginfo('DBW: cur_vel={} lin_vel={}'.format(self.current_linear_velocity, self.linear_velocity))
         
         pass
 

@@ -195,13 +195,6 @@ class WaypointUpdater(object):
             wp1 = i
         return dist
 
-    def kph_to_mps(self, kph):
-        return 0.278 * kph
-
-    def mph_to_mps(self, mph):
-        return 0.447 * mph
-
-
 if __name__ == '__main__':
     try:
         WaypointUpdater()

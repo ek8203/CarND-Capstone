@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import rospy
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Bool
 from geometry_msgs.msg import PoseStamped, Pose
 from styx_msgs.msg import TrafficLightArray, TrafficLight
 from styx_msgs.msg import Lane
@@ -38,6 +38,7 @@ class TLDetector(object):
         '''
         sub3 = rospy.Subscriber('/vehicle/traffic_lights', TrafficLightArray, self.traffic_cb)
         sub6 = rospy.Subscriber('/image_color', Image, self.image_cb)
+        sub4 = rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
 
         config_string = rospy.get_param("/traffic_light_config")
         self.config = yaml.load(config_string)
@@ -52,9 +53,13 @@ class TLDetector(object):
         self.last_state = TrafficLight.UNKNOWN
         self.last_wp = -1
         self.state_count = 0
+        self.dbw_enabled = False
 
         rospy.spin()
 
+    def dbw_enabled_cb(self, msg):
+        self.dbw_enabled = msg.data
+    
     def pose_cb(self, msg):
         self.pose = msg
 
@@ -87,6 +92,9 @@ class TLDetector(object):
         self.has_image = True
 
         light_wp, state = self.process_traffic_lights()
+ 
+        if self.dbw_enabled:       
+            rospy.loginfo('TL: ligth at wp={} state={}'.format(light_wp, state))
 
         '''
         Publish upcoming red lights at camera frequency.
