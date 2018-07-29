@@ -24,6 +24,8 @@ class Controller(object):
         self.decel_limit = decel_limit
         self.vehicle_mass = vehicle_mass
         self.wheel_radius = wheel_radius
+        self.fuel_capacity = fuel_capacity
+        self.stop = False
 
         # Steering control
         min_speed = 0.1
@@ -38,7 +40,7 @@ class Controller(object):
         ki = 0.1
         kd = 0.0
         throttle_min = 0.0
-        throttle_max = 0.2
+        throttle_max = 1.0 #0.2
         self.throttle_controller = PID(kp, ki, kd, throttle_min, throttle_max)
 
         # Filter noisy velocity
@@ -48,7 +50,7 @@ class Controller(object):
 
         self.last_time = rospy.get_time()
 
-    def control(self, current_velocity, linear_velocity, angular_velocity, dbw_enabled):
+    def control(self, linear_velocity, angular_velocity, current_velocity, dbw_enabled):
        # TODO: Change the arg, kwarg list to suit your needs
         # Return throttle, brake, steer
         throttle = 0.0
@@ -74,19 +76,21 @@ class Controller(object):
         sample_time = current_time - self.last_time
         self.last_time = current_time
 
-        # get throttle
+        # speed control
         throttle = self.throttle_controller.step(error, sample_time)
 
         # set brake to 400 N*m to hold stopped vehicle
-        brake = 0.
-        if linear_velocity == 0. and current_velocity < 0.1:
+        if linear_velocity == 0 and current_velocity < 0.1:
             throttle = 0.
             brake = 400.
+            self.stop = True
         # allpy brake to deccelerate    
-        elif throttle < 0.1 and error < 0:  
+        elif throttle < 0.1 and error < 0 and self.stop == False:  
             throttle = 0.
-            decelerate = max(error, self.decel_limit)
+            decelerate = max(abs(error), self.decel_limit)
             # torque in N*m
-            brake = abs(decelerate) * self.vehicle_mass * self.wheel_radius
+            brake = abs(decelerate) * (self.vehicle_mass + self.fuel_capacity*GAS_DENSITY) * self.wheel_radius
+        else:
+            self.stop = False
 
         return throttle, brake, steer

@@ -88,13 +88,19 @@ class DBWNode(object):
         while not rospy.is_shutdown():
             # TODO: Get predicted throttle, brake, and steering using `twist_controller`
             # You should only publish the control commands if dbw is enabled
+            # throttle, brake, steering = self.controller.control(<proposed linear velocity>,
+            #                                                     <proposed angular velocity>,
+            #                                                     <current linear velocity>,
+            #                                                     <dbw status>,
+            #                                                     <any other argument you need>)
+            # if <dbw is enabled>:
             if not None in (self.current_linear_velocity, self.linear_velocity, self.angular_velocity):
-                self.throttle, self.brake, self.steering = self.controller.control(self.current_linear_velocity,
-                                                                    self.linear_velocity,
-                                                                    self.angular_velocity,
-                                                                    self.dbw_enabled)
+                self.throttle, self.brake, self.steering = self.controller.control( self.linear_velocity,
+                                                                                    self.angular_velocity,
+                                                                                    self.current_linear_velocity,
+                                                                                    self.dbw_enabled)
 
-            rospy.loginfo('DBW: throttle={}, brake={}, steer={}'.format(self.throttle, self.brake, self.steering))
+                #rospy.loginfo('DBW: throttle={}, brake={}, steer={}'.format(self.throttle, self.brake, self.steering))
             
             if self.dbw_enabled:
                 self.publish(self.throttle, self.brake, self.steering)
@@ -106,7 +112,12 @@ class DBWNode(object):
     def twist_cb(self, msg):
         self.linear_velocity = msg.twist.linear.x
         self.angular_velocity = msg.twist.angular.z
-    
+        
+        if self.dbw_enabled:
+            rospy.loginfo('DBW: cur_vel={} lin_vel={}'.format(self.current_linear_velocity, self.linear_velocity))
+        
+        pass
+
     def dbw_enabled_cb(self, msg):
         self.dbw_enabled = msg.data
     

@@ -24,7 +24,7 @@ as well as to verify your TL classifier.
 TODO (for Yousuf and Aaron): Stopline location for each traffic light.
 '''
 
-LOOKAHEAD_WPS = 30	#200 # Number of waypoints we will publish. You can change this number
+LOOKAHEAD_WPS = 50	#200 # Number of waypoints we will publish. You can change this number
 MAX_DECEL = 1.
 
 class WaypointUpdater(object):
@@ -46,6 +46,9 @@ class WaypointUpdater(object):
         self.waypoints_2d = None
         self.waypoint_tree = None
         self.stopline_wp_idx = -1
+
+        # for debug:
+        self.closest_idx = -1
 
         #rospy.spin()
         # To control the publishing frequency
@@ -87,7 +90,7 @@ class WaypointUpdater(object):
         
         # stop 2 wp before the stop line 
         stop_idx = max(self.stopline_wp_idx - closest_idx - 2, 0)
-
+        
         # enumerate over a sliced array of waypoints
         for i, wp in enumerate(waypoints):
             # create a new waypoint msg
@@ -97,14 +100,24 @@ class WaypointUpdater(object):
 
             # calc distance to the stop
             dist = self.distance(waypoints, i, stop_idx)
+
             # velocity decelerates by square root function profile
             vel = math.sqrt(2 * MAX_DECEL * dist)
             # decelerate to zero
             if vel < 1.:
                 vel = 0.
 
+            #rospy.loginfo('WU: dist[{}]={} vel={}'.format(i, dist, vel))
+
             p.twist.twist.linear.x = min(vel, wp.twist.twist.linear.x)
+
+            #rospy.loginfo('WU: twist[{}]={} vel={}'.format(i, p.twist.twist.linear.x, vel))
+
             temp.append(p)
+
+        # rospy.loginfo('WU: closest_idx={} stop_idx={}'.format(self.closest_idx, stop_idx))
+        # rospy.loginfo('WU: {}'.format(temp))
+        # rospy.loginfo('\n')
 
         return temp
 
@@ -112,6 +125,10 @@ class WaypointUpdater(object):
     def publish_waypoints(self):
         lane = self.get_lane()
         self.final_waypoints_pub.publish(lane)
+
+        #rospy.loginfo('WU: twist={}'.format(lane.waypoints[0].twist.twist.linear.x))
+        #for i, wp in enumerate(lane.waypoints):
+            #rospy.loginfo('WU: twist[{}]={}'.format(i, wp.twist.twist.linear.x))
         #pass
 
     def get_lane(self):
@@ -124,6 +141,9 @@ class WaypointUpdater(object):
         closest_idx = self.get_closest_waypoint_idx()
         farthest_idx = closest_idx + LOOKAHEAD_WPS
         base_waypoints = self.base_waypoints.waypoints[closest_idx:farthest_idx]
+
+        # debug
+        self.closest_idx = closest_idx
 
         if (self.stopline_wp_idx == -1) or (self.stopline_wp_idx >= farthest_idx):
             # no TL data - publish base waypoints
@@ -154,6 +174,7 @@ class WaypointUpdater(object):
     def traffic_cb(self, msg):
         # TODO: Callback for /traffic_waypoint message. Implement
         self.stopline_wp_idx = msg.data
+        #rospy.loginfo('WU: stopline_wp_idx={} closest_idx={}'.format(self.stopline_wp_idx, self.closest_idx))
         #pass
 
     def obstacle_cb(self, msg):
@@ -173,6 +194,12 @@ class WaypointUpdater(object):
             dist += dl(waypoints[wp1].pose.pose.position, waypoints[i].pose.pose.position)
             wp1 = i
         return dist
+
+    def kph_to_mps(self, kph):
+        return 0.278 * kph
+
+    def mph_to_mps(self, mph):
+        return 0.447 * mph
 
 
 if __name__ == '__main__':
